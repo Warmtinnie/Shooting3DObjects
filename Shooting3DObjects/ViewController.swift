@@ -24,11 +24,59 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.showsStatistics = true
         
         // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
+        let scene = SCNScene()
         
         // Set the scene to the view
         sceneView.scene = scene
+        
+        self.sceneView = ARSCNView(frame: self.view.frame)
+        self.view.addSubview(self.sceneView)
+        registerGestureRecognixer() 
     }
+    
+    private func registerGestureRecognixer(){
+        
+        let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(tapped))
+        self.sceneView.addGestureRecognizer(tapGestureRecognizer)
+        
+    }
+    
+    @objc func tapped(recognizer: UIGestureRecognizer){
+        
+        spawnShootyBalls()
+        
+    }
+    
+    private func spawnShootyBalls(){
+        
+        guard let currentFrame = self.sceneView.session.currentFrame else{
+            return
+        }
+        
+        //This will spawn the ball out in front of the camera instead of inside
+        var translation = matrix_identity_float4x4
+        translation.columns.3.z = -0.1
+        
+        //Now to make the sphere Geometry
+        let sphere = SCNSphere(radius: 0.4)
+        let material = SCNMaterial()
+        material.diffuse.contents = UIColor.red
+        sphere.materials = [material]
+        
+        let sphereNode = SCNNode(geometry: sphere)
+        sphereNode.simdTransform = matrix_multiply(currentFrame.camera.transform, translation)
+        sphereNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        sphereNode.physicsBody?.isAffectedByGravity = false
+        
+        
+        let forceVector = SCNVector3(sphereNode.worldFront.x * 150, sphereNode.worldFront.y * 150, sphereNode.worldFront.z * 150)
+        
+        sphereNode.physicsBody?.applyForce(forceVector, asImpulse: true)
+        
+        self.sceneView.scene.rootNode.addChildNode(sphereNode)
+        
+    }
+    
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -47,29 +95,4 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.session.pause()
     }
 
-    // MARK: - ARSCNViewDelegate
-    
-/*
-    // Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
-        return node
-    }
-*/
-    
-    func session(_ session: ARSession, didFailWithError error: Error) {
-        // Present an error message to the user
-        
-    }
-    
-    func sessionWasInterrupted(_ session: ARSession) {
-        // Inform the user that the session has been interrupted, for example, by presenting an overlay
-        
-    }
-    
-    func sessionInterruptionEnded(_ session: ARSession) {
-        // Reset tracking and/or remove existing anchors if consistent tracking is required
-        
-    }
 }
